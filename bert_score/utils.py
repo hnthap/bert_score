@@ -33,6 +33,7 @@ lang2model.update(
         "zh": "bert-base-chinese",
         "tr": "dbmdz/bert-base-turkish-cased",
         "en-sci": "allenai/scibert_scivocab_uncased",
+        "vi": "vinai/phobert-large",
     }
 )
 

@@ -9,7 +9,12 @@ import numpy as np
 import pandas as pd
 import torch
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from transformers import AutoTokenizer
+from transformers import (
+    AutoTokenizer,
+    MBartForConditionalGeneration,
+    MBart50Tokenizer,
+    MBart50TokenizerFast,
+)
 
 from .utils import (bert_cos_score_idf, cache_scibert, get_bert_embedding,
                     get_hash, get_idf_dict, get_model, get_tokenizer,
@@ -88,14 +93,22 @@ def score(
     if rescale_with_baseline:
         assert lang is not None, "Need to specify Language when rescaling with baseline"
 
-    if model_type is None:
-        lang = lang.lower()
-        model_type = lang2model[lang]
-    if num_layers is None:
-        num_layers = model2layers[model_type]
-
-    tokenizer = get_tokenizer(model_type, use_fast_tokenizer)
-    model = get_model(model_type, num_layers, all_layers)
+    if model_type == 'facebook/mbart-large-50-many-to-many-mmt':
+        num_layers = 12
+        if use_fast_tokenizer:
+            tokenizer = MBart50TokenizerFast.from_pretrained(model_type, model_max_length=512)
+        else:
+            tokenizer = MBart50Tokenizer.from_pretrained(model_type, model_max_length=512)
+        tokenizer.src_lang = 'vi_VN'
+        model = MBartForConditionalGeneration.from_pretrained(model_type)
+    else:
+        if model_type is None:
+            lang = lang.lower()
+            model_type = lang2model[lang]
+        if num_layers is None:
+            num_layers = model2layers[model_type]
+        tokenizer = get_tokenizer(model_type, use_fast_tokenizer)
+        model = get_model(model_type, num_layers, all_layers)
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)

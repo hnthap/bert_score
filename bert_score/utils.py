@@ -11,7 +11,8 @@ from packaging import version
 from torch.nn.utils.rnn import pad_sequence
 from tqdm.auto import tqdm
 from transformers import (AutoModel, AutoTokenizer, BertConfig, GPT2Tokenizer, RobertaTokenizer,
-                          RobertaConfig, XLMConfig, XLNetConfig)
+                          RobertaConfig, XLMConfig, XLNetConfig, MBart50Tokenizer,
+                          MBart50TokenizerFast)
 from transformers import __version__ as trans_version
 
 from . import __version__
@@ -219,6 +220,18 @@ def sent_encode(tokenizer, sent):
             raise NotImplementedError(
                 f"transformers version {trans_version} is not supported"
             )
+    elif isinstance(tokenizer, MBart50TokenizerFast) or isinstance(tokenizer, MBart50Tokenizer):
+        if version.parse(trans_version) >= version.parse("4.0.0"):
+            return tokenizer(
+                sent,
+                add_special_tokens=True,
+                max_length=tokenizer.model_max_length,
+                truncation=True,
+            ).input_ids
+        else:
+            raise NotImplementedError(
+                f"transformers version {trans_version} is not supported"
+            )
     else:
         if version.parse(trans_version) >= version.parse("4.0.0"):
             return tokenizer.encode(
@@ -339,7 +352,11 @@ def padding(arr, pad_token, dtype=torch.long):
     max_len = lens.max().item()
     padded = torch.ones(len(arr), max_len, dtype=dtype) * pad_token
     mask = torch.zeros(len(arr), max_len, dtype=torch.long)
+    # print('🌱 padded', padded)
     for i, a in enumerate(arr):
+        # print('⚜️ i', i)
+        # print('⚜️ lens[i]', lens[i])
+        # print('⚜️ a', a)
         padded[i, : lens[i]] = torch.tensor(a, dtype=dtype)
         mask[i, : lens[i]] = 1
     return padded, lens, mask
